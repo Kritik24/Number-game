@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #00000080;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            grid-gap: 10px;
+            margin-top: 20px;
+        }
+        .cell {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffffaf;
+            border: 2px solid #ddd;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .cell.correct {
+            background-color: #32413683;
+        }
+        .cell.incorrect {
+            background-color: #ff0015;
+        }
+        .cell.fade {
+            animation: fadeEffect 0.5s ease-in-out;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .timer-bar {
+            width: 200px;
+            height: 10px;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .timer-fill {
+            height: 100%;
+            width: 100%;
+            background-color: #03ff10;
+            position: absolute;
+            right: 0;
+        }
+    </style>
+</head>
+<body>
+    <button id="startButton">Start Game</button>
+    
+    <div class="grid" id="grid" style="display: none;"></div>
+    <div class="timer-bar" id="timerBar" style="display: none;">
+        <div class="timer-fill" id="timerFill"></div>
+    </div>
+    <script>
+        const grid = document.getElementById('grid');
+        const startButton = document.getElementById('startButton');
+        const timerBar = document.getElementById('timerBar');
+        const timerFill = document.getElementById('timerFill');
+        let numbers = Array.from({ length: 20 }, (_, i) => i + 1);
+        let currentNumber = 1;
+        let shuffleInterval;
+        let countdownInterval;
+        let timeLeft = 20;
+
+        // To track which numbers have been clicked correctly and are faded
+        let fadedNumbers = new Set();
+
+        function shuffleNumbers() {
+            // Shuffle the numbers array
+            numbers = Array.from({ length: 20 }, (_, i) => i + 1);
+            numbers.sort(() => Math.random() - 0.5);
+        }
+
+        function renderGrid() {
+            grid.innerHTML = '';
+            numbers.forEach(num => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.textContent = num;
+
+                // Apply the faded effect to numbers that were already clicked correctly
+                if (fadedNumbers.has(num)) {
+                    cell.classList.add('fade');
+                    cell.classList.add('correct'); // Ensure the cell stays marked as correct
+                }
+
+                cell.addEventListener('click', () => handleCellClick(cell, num));
+                grid.appendChild(cell);
+            });
+        }
+
+        function handleCellClick(cell, num) {
+            if (num === currentNumber) {
+                // Mark number as correct and faded
+                cell.classList.add('correct');
+                cell.classList.add('fade'); // Apply the fade effect
+                fadedNumbers.add(num); // Add the number to the faded set
+                currentNumber++; // Increase the current number to the next in sequence
+
+                if (currentNumber > 20) {
+                    alert('Congratulations! You completed the game!');
+                    endGame();
+                }
+            } else {
+                // If the wrong number is clicked, mark it incorrect
+                cell.classList.add('incorrect');
+                setTimeout(() => cell.classList.remove('incorrect'), 500);
+
+                // Subtract 0.5 seconds when the wrong number is clicked
+                timeLeft -= 0.5;
+
+                // Ensure timeLeft doesn't go below 0
+                if (timeLeft < 0) timeLeft = 0;
+
+                // Update the timer bar
+                const percentage = (timeLeft / 20) * 100;
+                timerFill.style.width = `${percentage}%`;
+
+                // Shuffle the grid and keep the game running
+                shuffleNumbers();
+                renderGrid();
+            }
+        }
+
+        function startTimer() {
+            timeLeft = 20;
+            timerFill.style.width = '100%';
+            const totalTime = timeLeft;
+
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                const percentage = (timeLeft / totalTime) * 100;
+                // Decrease width from right to left
+                timerFill.style.width = `${percentage}%`;
+                if (timeLeft <= 0) {
+                    alert('Time is up! You lost the game.');
+                    endGame();
+                }
+            }, 1000); // 1 second interval for countdown
+        }
+
+        function endGame() {
+            clearInterval(shuffleInterval);
+            clearInterval(countdownInterval);
+            currentNumber = 1;
+            grid.style.display = 'none';
+            timerBar.style.display = 'none';
+            startButton.style.display = 'block';
+            // Remove the fade effect after the game ends
+            const cells = grid.getElementsByClassName('cell');
+            Array.from(cells).forEach(cell => {
+                cell.classList.remove('fade');
+            });
+        }
+
+        startButton.addEventListener('click', () => {
+            currentNumber = 1;
+            fadedNumbers.clear(); // Reset the faded numbers on new game
+            shuffleNumbers();
+            renderGrid();
+            grid.style.display = 'grid';
+            timerBar.style.display = 'flex';
+            startButton.style.display = 'none';
+
+            // Start shuffling the grid every 2 seconds
+            shuffleInterval = setInterval(() => {
+                shuffleNumbers();
+                renderGrid();
+            }, 2000);
+
+            // Start the timer
+            startTimer();
+        });
+    </script>
+</body>
+</html>
